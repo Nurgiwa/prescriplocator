@@ -1,0 +1,140 @@
+/* frontend/css/style.css */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f0f4f8;
+  color: #333;
+}
+
+/* ── Auth pages (login & register) ── */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.auth-card .logo img {
+  width: 36px;
+}
+
+.auth-card .logo span {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a7a4a;
+}
+
+.auth-card h2 {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.auth-card p.subtitle {
+  text-align: center;
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #444;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #1a7a4a;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: #1a7a4a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #155f39;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 13px;
+  margin-top: 18px;
+  color: #555;
+}
+
+.auth-footer a {
+  color: #1a7a4a;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.error-msg {
+  background: #fdecea;
+  color: #c0392b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  display: none;
+}
+
+.success-msg {
+  background: #eafaf1;
+  color: #1a7a4a;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  display: none;
+}

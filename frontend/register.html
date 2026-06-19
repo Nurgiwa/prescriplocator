@@ -1,0 +1,154 @@
+<!-- frontend/pages/register.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register — PrescripLocator</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="logo">
+          <span>🏥 PrescripLocator</span>
+        </div>
+
+        <h2>Create Account</h2>
+        <p class="subtitle">Select how you want to continue</p>
+
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
+
+        <div class="form-group">
+          <label>Full Name</label>
+          <input
+            type="text"
+            id="full_name"
+            placeholder="Enter your full name"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" placeholder="Enter your email" />
+        </div>
+
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="text" id="phone" placeholder="Enter your phone number" />
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Create a password"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Role</label>
+          <select id="role" onchange="toggleSpecialization()">
+            <option value="">-- Select your role --</option>
+            <option value="doctor">I am a Doctor</option>
+            <option value="patient">I am a Patient</option>
+            <option value="pharmacist">I am a Pharmacist</option>
+          </select>
+        </div>
+
+        <!-- Only shown when role = doctor -->
+        <div class="form-group" id="specializationGroup" style="display: none">
+          <label>Specialization</label>
+          <input
+            type="text"
+            id="specialization"
+            placeholder="e.g. General Physician"
+          />
+        </div>
+
+        <button class="btn-primary" onclick="handleRegister()">Register</button>
+
+        <div class="auth-footer">
+          Already have an account? <a href="login.html">Login</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API = "http://localhost:5000/api";
+
+      // Show specialization field only for doctors
+      function toggleSpecialization() {
+        const role = document.getElementById("role").value;
+        const group = document.getElementById("specializationGroup");
+        group.style.display = role === "doctor" ? "block" : "none";
+      }
+
+      async function handleRegister() {
+        const full_name = document.getElementById("full_name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const role = document.getElementById("role").value;
+        const specialization = document
+          .getElementById("specialization")
+          .value.trim();
+
+        hideMessages();
+
+        if (!full_name || !email || !password || !role) {
+          showError("Please fill all required fields.");
+          return;
+        }
+
+        const body = { full_name, email, phone, password, role };
+        if (role === "doctor") body.specialization = specialization;
+
+        try {
+          const res = await fetch(`${API}/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            showError(data.message);
+            return;
+          }
+
+          showSuccess("Registration successful! Redirecting to login...");
+
+          // Redirect to login after 2 seconds
+          setTimeout(() => {
+            window.location.href = "login.html";
+          }, 2000);
+        } catch (err) {
+          showError(
+            "Cannot connect to server. Make sure the backend is running.",
+          );
+        }
+      }
+
+      function showError(msg) {
+        const el = document.getElementById("errorMsg");
+        el.textContent = msg;
+        el.style.display = "block";
+      }
+
+      function showSuccess(msg) {
+        const el = document.getElementById("successMsg");
+        el.textContent = msg;
+        el.style.display = "block";
+      }
+
+      function hideMessages() {
+        document.getElementById("errorMsg").style.display = "none";
+        document.getElementById("successMsg").style.display = "none";
+      }
+    </script>
+  </body>
+</html>
