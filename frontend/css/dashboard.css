@@ -1,0 +1,240 @@
+/* frontend/css/dashboard.css */
+
+.dash-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px;
+  background: #0d2b4e;
+  color: #fff;
+  padding: 20px 0;
+  flex-shrink: 0;
+}
+
+.sidebar .logo {
+  font-size: 17px;
+  font-weight: 700;
+  padding: 0 20px 20px;
+}
+
+.sidebar nav a {
+  display: block;
+  padding: 12px 20px;
+  color: #b8c4d9;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.sidebar nav a:hover {
+  background: #15396b;
+}
+
+.sidebar nav a.active {
+  background: #1a7a4a;
+  color: #fff;
+  font-weight: 600;
+}
+
+.sidebar .logout {
+  margin-top: 30px;
+  border-top: 1px solid #1d3f6e;
+  padding-top: 16px;
+}
+
+/* ── Main content ── */
+.main {
+  flex: 1;
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.main-header h1 {
+  font-size: 22px;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1a7a4a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* ── Stat cards ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card .label {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.stat-card .value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* ── Panels ── */
+.panels-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 20px;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.panel h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  font-size: 14px;
+}
+
+/* Drug search results dropdown */
+.search-results {
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  margin-top: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  display: none;
+}
+
+.search-results div {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.search-results div:hover {
+  background: #f0f4f8;
+}
+
+/* Selected drugs list */
+.drug-line {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.drug-line input {
+  padding: 7px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.drug-line .remove-btn {
+  color: #c0392b;
+  cursor: pointer;
+  font-weight: 700;
+  background: none;
+  border: none;
+  font-size: 16px;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: #1a7a4a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn-primary:hover {
+  background: #155f39;
+}
+
+.generated-code {
+  text-align: center;
+  margin-top: 14px;
+  padding: 12px;
+  background: #eafaf1;
+  border-radius: 8px;
+  color: #1a7a4a;
+  font-weight: 700;
+  display: none;
+}
+
+/* Recent prescriptions list */
+.rx-list .rx-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+}
+
+.rx-list .rx-item .code {
+  font-weight: 700;
+  color: #0d2b4e;
+}
+
+.rx-list .rx-item .meta {
+  color: #888;
+  font-size: 12px;
+}

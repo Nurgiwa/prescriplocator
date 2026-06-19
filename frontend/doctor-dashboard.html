@@ -1,0 +1,262 @@
+<!-- frontend/pages/doctor-dashboard.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Doctor Dashboard — PrescripLocator</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+  </head>
+  <body>
+    <div class="dash-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="logo">🏥 PrescripLocator</div>
+        <nav>
+          <a href="doctor-dashboard.html" class="active">Dashboard</a>
+          <a href="#">Patients</a>
+          <a href="#">Drug Directory</a>
+        </nav>
+        <div class="logout">
+          <a href="#" onclick="logout()">Logout</a>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <div class="main-header">
+          <h1>Doctor Dashboard</h1>
+          <div class="user-chip">
+            <div class="avatar" id="avatarInitial"></div>
+            <span id="userName"></span>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="label">Today's Prescriptions</div>
+            <div class="value" id="todayCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Total Prescriptions</div>
+            <div class="value" id="totalCount">0</div>
+          </div>
+        </div>
+
+        <div class="panels-row">
+          <!-- Create Prescription -->
+          <div class="panel">
+            <h3>Create Prescription</h3>
+
+            <div class="field">
+              <label>Patient Email</label>
+              <input
+                type="email"
+                id="patientEmail"
+                placeholder="Enter patient's registered email"
+              />
+            </div>
+
+            <div class="field" style="position: relative">
+              <label>Search & Add Drug</label>
+              <input
+                type="text"
+                id="drugSearch"
+                placeholder="Search drug by name"
+                oninput="searchDrugs()"
+              />
+              <div class="search-results" id="searchResults"></div>
+            </div>
+
+            <div id="drugLines"></div>
+
+            <button class="btn-primary" onclick="generatePrescription()">
+              Generate Prescription
+            </button>
+
+            <div class="generated-code" id="generatedCode"></div>
+          </div>
+
+          <!-- Recent Prescriptions -->
+          <div class="panel">
+            <h3>Recent Prescriptions</h3>
+            <div class="rx-list" id="rxList">
+              <p style="font-size: 13px; color: #999">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="js/auth-guard.js"></script>
+    <script>
+      // Show user's name and initial
+      document.getElementById("userName").textContent = user.full_name;
+      document.getElementById("avatarInitial").textContent = user.full_name
+        .charAt(0)
+        .toUpperCase();
+
+      let selectedDrugs = []; // { drug_id, name, dosage, duration, instructions }
+
+      // ── Drug search ──
+      let searchTimeout;
+      function searchDrugs() {
+        clearTimeout(searchTimeout);
+        const query = document.getElementById("drugSearch").value.trim();
+        const resultsBox = document.getElementById("searchResults");
+
+        if (query.length < 2) {
+          resultsBox.style.display = "none";
+          return;
+        }
+
+        searchTimeout = setTimeout(async () => {
+          const res = await apiFetch(
+            `/drugs/search?q=${encodeURIComponent(query)}`,
+          );
+          const drugs = await res.json();
+
+          resultsBox.innerHTML = "";
+          if (drugs.length === 0) {
+            resultsBox.style.display = "none";
+            return;
+          }
+
+          drugs.forEach((drug) => {
+            const div = document.createElement("div");
+            div.textContent = `${drug.name} (${drug.category || "No category"})`;
+            div.onclick = () => addDrugLine(drug);
+            resultsBox.appendChild(div);
+          });
+          resultsBox.style.display = "block";
+        }, 300);
+      }
+
+      // ── Add a drug line to the prescription ──
+      function addDrugLine(drug) {
+        selectedDrugs.push({
+          drug_id: drug.id,
+          name: drug.name,
+          dosage: "",
+          duration: "",
+          instructions: "",
+        });
+        document.getElementById("drugSearch").value = "";
+        document.getElementById("searchResults").style.display = "none";
+        renderDrugLines();
+      }
+
+      function removeDrugLine(index) {
+        selectedDrugs.splice(index, 1);
+        renderDrugLines();
+      }
+
+      function updateDrugField(index, field, value) {
+        selectedDrugs[index][field] = value;
+      }
+
+      function renderDrugLines() {
+        const container = document.getElementById("drugLines");
+        container.innerHTML = "";
+
+        selectedDrugs.forEach((drug, i) => {
+          const row = document.createElement("div");
+          row.className = "drug-line";
+          row.innerHTML = `
+<span>${drug.name}</span>
+<input placeholder="Dosage" value="${drug.dosage}" onchange="updateDrugField(${i}, 'dosage', this.value)">
+<input placeholder="Duration" value="${drug.duration}" onchange="updateDrugField(${i}, 'duration', this.value)">
+<input placeholder="Instructions" value="${drug.instructions}" onchange="updateDrugField(${i}, 'instructions', this.value)">
+<button class="remove-btn" onclick="removeDrugLine(${i})">×</button>
+`;
+          container.appendChild(row);
+        });
+      }
+
+      // ── Generate prescription ──
+      async function generatePrescription() {
+        const patient_email = document
+          .getElementById("patientEmail")
+          .value.trim();
+        const codeBox = document.getElementById("generatedCode");
+        codeBox.style.display = "none";
+
+        if (!patient_email) {
+          alert("Please enter the patient email.");
+          return;
+        }
+        if (selectedDrugs.length === 0) {
+          alert("Please add at least one drug.");
+          return;
+        }
+        for (const d of selectedDrugs) {
+          if (!d.dosage || !d.duration) {
+            alert(`Please fill dosage and duration for ${d.name}.`);
+            return;
+          }
+        }
+
+        const res = await apiFetch("/prescriptions", {
+          method: "POST",
+          body: JSON.stringify({ patient_email, drugs: selectedDrugs }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message);
+          return;
+        }
+
+        codeBox.textContent = `Prescription Created — Code: ${data.prescription_code}`;
+        codeBox.style.display = "block";
+
+        // Reset form
+        selectedDrugs = [];
+        renderDrugLines();
+        document.getElementById("patientEmail").value = "";
+
+        loadRecentPrescriptions();
+      }
+
+      // ── Load recent prescriptions + stats ──
+      async function loadRecentPrescriptions() {
+        const res = await apiFetch("/prescriptions/doctor");
+        const list = await res.json();
+
+        document.getElementById("totalCount").textContent = list.length;
+
+        const today = new Date().toDateString();
+        const todayCount = list.filter(
+          (p) => new Date(p.created_at).toDateString() === today,
+        ).length;
+        document.getElementById("todayCount").textContent = todayCount;
+
+        const rxList = document.getElementById("rxList");
+        rxList.innerHTML = "";
+
+        if (list.length === 0) {
+          rxList.innerHTML =
+            '<p style="font-size:13px; color:#999;">No prescriptions yet.</p>';
+          return;
+        }
+
+        list.forEach((p) => {
+          const date = new Date(p.created_at).toLocaleDateString();
+          const item = document.createElement("div");
+          item.className = "rx-item";
+          item.innerHTML = `
+<div>
+<div class="code">${p.prescription_code}</div>
+<div class="meta">${p.patient_name}</div>
+</div>
+<div class="meta">${date}</div>
+`;
+          rxList.appendChild(item);
+        });
+      }
+
+      loadRecentPrescriptions();
+    </script>
+  </body>
+</html>
