@@ -4,12 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Register — PrescripLocator</title>
+    <title>Register - PrescripLocator</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
+    <!-- Centered authentication layout shared by login and register pages. -->
     <div class="auth-container">
       <div class="auth-card">
+        <!-- Brand mark displayed above the form. -->
         <div class="logo">
           <span>🏥 PrescripLocator</span>
         </div>
@@ -17,9 +19,11 @@
         <h2>Create Account</h2>
         <p class="subtitle">Select how you want to continue</p>
 
+        <!-- Only one of these messages is shown after each submission. -->
         <div class="error-msg" id="errorMsg"></div>
         <div class="success-msg" id="successMsg"></div>
 
+        <!-- Basic identity fields become the shared users table record. -->
         <div class="form-group">
           <label>Full Name</label>
           <input
@@ -48,6 +52,7 @@
           />
         </div>
 
+        <!-- Role controls which dashboard the user reaches after login. -->
         <div class="form-group">
           <label>Role</label>
           <select id="role" onchange="toggleSpecialization()">
@@ -58,7 +63,7 @@
           </select>
         </div>
 
-        <!-- Only shown when role = doctor -->
+        <!-- Only doctors send specialization to the backend. -->
         <div class="form-group" id="specializationGroup" style="display: none">
           <label>Specialization</label>
           <input
@@ -77,15 +82,17 @@
     </div>
 
     <script>
+      // Base backend URL used by this standalone frontend page.
       const API = "http://localhost:5000/api";
 
-      // Show specialization field only for doctors
+      // Show specialization field only for doctor registrations.
       function toggleSpecialization() {
         const role = document.getElementById("role").value;
         const group = document.getElementById("specializationGroup");
         group.style.display = role === "doctor" ? "block" : "none";
       }
 
+      // Validate input, build the request body, and create the account.
       async function handleRegister() {
         const full_name = document.getElementById("full_name").value.trim();
         const email = document.getElementById("email").value.trim();
@@ -103,6 +110,7 @@
           return;
         }
 
+        // The backend only expects specialization for doctors.
         const body = { full_name, email, phone, password, role };
         if (role === "doctor") body.specialization = specialization;
 
@@ -122,7 +130,7 @@
 
           showSuccess("Registration successful! Redirecting to login...");
 
-          // Redirect to login after 2 seconds
+          // Give the user a moment to see success before moving to login.
           setTimeout(() => {
             window.location.href = "login.html";
           }, 2000);
@@ -133,18 +141,21 @@
         }
       }
 
+      // Display a single inline error message inside the auth card.
       function showError(msg) {
         const el = document.getElementById("errorMsg");
         el.textContent = msg;
         el.style.display = "block";
       }
 
+      // Display a single inline success message inside the auth card.
       function showSuccess(msg) {
         const el = document.getElementById("successMsg");
         el.textContent = msg;
         el.style.display = "block";
       }
 
+      // Reset feedback before each new registration attempt.
       function hideMessages() {
         document.getElementById("errorMsg").style.display = "none";
         document.getElementById("successMsg").style.display = "none";

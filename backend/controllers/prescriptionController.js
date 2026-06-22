@@ -1,18 +1,21 @@
 // backend/controllers/prescriptionController.js
+// Creates and lists prescriptions for logged-in doctors.
 const db = require("../config/db");
 
-// Generates a code like RX7F2K9L1
+// Generate a short public code patients/pharmacists can reference.
 function generateCode() {
   const random = Math.random().toString(36).substring(2, 9).toUpperCase();
   return `RX${random}`;
 }
 
-// CREATE prescription — doctor only
+// Create a prescription for a patient. Access is enforced by JWT middleware.
 async function createPrescription(req, res) {
-  const doctorUserId = req.user.id; // from JWT
+  // req.user is set by authMiddleware after the JWT is verified.
+  const doctorUserId = req.user.id;
   const { patient_email, drugs } = req.body;
-  // drugs = [{ drug_id, dosage, duration, instructions }, ...]
 
+  // Expected drugs shape:
+  // [{ drug_id, dosage, duration, instructions }, ...]
   if (!patient_email || !drugs || drugs.length === 0) {
     return res
       .status(400)
@@ -20,7 +23,7 @@ async function createPrescription(req, res) {
   }
 
   try {
-    // Find the doctor's row using their user id
+    // Convert the logged-in user id to the doctor table id.
     const [doctorRows] = await db.query(
       "SELECT id FROM doctors WHERE user_id = ?",
       [doctorUserId],
@@ -32,7 +35,7 @@ async function createPrescription(req, res) {
     }
     const doctorId = doctorRows[0].id;
 
-    // Find the patient by email
+    // Only registered patients can receive prescriptions.
     const [patientRows] = await db.query(
       "SELECT id FROM users WHERE email = ? AND role = 'patient'",
       [patient_email],
@@ -44,7 +47,7 @@ async function createPrescription(req, res) {
     }
     const patientId = patientRows[0].id;
 
-    // Generate a unique prescription code
+    // Keep generating codes until there is no collision in the database.
     let code;
     let isUnique = false;
     while (!isUnique) {
@@ -56,14 +59,14 @@ async function createPrescription(req, res) {
       if (existing.length === 0) isUnique = true;
     }
 
-    // Insert the prescription
+    // Create the prescription header first so items can reference its id.
     const [presResult] = await db.query(
       "INSERT INTO prescriptions (prescription_code, doctor_id, patient_id) VALUES (?, ?, ?)",
       [code, doctorId, patientId],
     );
     const prescriptionId = presResult.insertId;
 
-    // Insert each drug line
+    // Store each selected drug as a separate prescription item.
     for (const item of drugs) {
       await db.query(
         `INSERT INTO prescription_items (prescription_id, drug_id, dosage, duration, instructions)
@@ -86,11 +89,12 @@ VALUES (?, ?, ?, ?, ?)`,
   }
 }
 
-// LIST prescriptions created by the logged-in doctor (for "Recent Prescriptions")
+// List the current doctor's most recent prescriptions for dashboard display.
 async function getDoctorPrescriptions(req, res) {
   const doctorUserId = req.user.id;
 
   try {
+    // Confirm the current user has a doctor profile before showing records.
     const [doctorRows] = await db.query(
       "SELECT id FROM doctors WHERE user_id = ?",
       [doctorUserId],
@@ -100,6 +104,8 @@ async function getDoctorPrescriptions(req, res) {
     }
     const doctorId = doctorRows[0].id;
 
+    // Join patient names onto prescriptions so the frontend does not need
+    // another request for each recent prescription.
     const [rows] = await db.query(
       `SELECT p.prescription_code, p.created_at, u.full_name AS patient_name
 FROM prescriptions p

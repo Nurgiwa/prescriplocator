@@ -1,23 +1,24 @@
-// This runs before any protected route to verify the token
-
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+// backend/middleware/authMiddleware.js
+// Verifies JWTs before protected routes are allowed to run.
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 function verifyToken(req, res, next) {
-const authHeader = req.headers['authorization'];
-const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+  const authHeader = req.headers["authorization"];
+  // Authorization headers are expected to look like: Bearer <token>.
+  const token = authHeader && authHeader.split(" ")[1];
 
-if (!token) {
-return res.status(401).json({ message: 'Access denied. No token provided.' });
-}
+  if (!token) {
+    return res.status(401).json({ message: "Access denied. No token provided." });
+  }
 
-try {
-const decoded = jwt.verify(token, process.env.JWT_SECRET);
-req.user = decoded; // { id, role, full_name }
-next();
-} catch (err) {
-res.status(403).json({ message: 'Invalid or expired token.' });
-}
+  try {
+    // Attach token claims so controllers can identify the current user.
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (err) {
+    res.status(403).json({ message: "Invalid or expired token." });
+  }
 }
 
 module.exports = verifyToken;

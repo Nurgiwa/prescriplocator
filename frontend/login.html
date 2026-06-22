@@ -4,13 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login — PrescripLocator</title>
+    <title>Login - PrescripLocator</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
+    <!-- Centered authentication layout shared by login and register pages. -->
     <div class="auth-container">
       <div class="auth-card">
-        <!-- Logo -->
+        <!-- Brand mark displayed above the form. -->
         <div class="logo">
           <span>🏥 PrescripLocator</span>
         </div>
@@ -18,9 +19,10 @@
         <h2>Welcome Back!</h2>
         <p class="subtitle">Login to continue to your account</p>
 
+        <!-- Hidden until validation or API errors need to be shown. -->
         <div class="error-msg" id="errorMsg"></div>
 
-        <!-- Login Form -->
+        <!-- Login form fields are read manually by handleLogin(). -->
         <div class="form-group">
           <label>Email or Phone</label>
           <input type="email" id="email" placeholder="Enter your email" />
@@ -44,14 +46,16 @@
     </div>
 
     <script>
+      // Base backend URL used by this standalone frontend page.
       const API = "http://localhost:5000/api";
 
+      // Validate the form, request a token, then route the user by role.
       async function handleLogin() {
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value.trim();
         const errorMsg = document.getElementById("errorMsg");
 
-        // Hide previous error
+        // Hide previous error before checking the current submission.
         errorMsg.style.display = "none";
 
         if (!email || !password) {
@@ -60,6 +64,7 @@
         }
 
         try {
+          // Send credentials to the backend auth controller.
           const res = await fetch(`${API}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -73,11 +78,11 @@
             return;
           }
 
-          // Save token and user info in localStorage
+          // Persist the session so dashboard pages can call protected APIs.
           localStorage.setItem("token", data.token);
           localStorage.setItem("user", JSON.stringify(data.user));
 
-          // Redirect based on role
+          // Send each role to its own dashboard page.
           const role = data.user.role;
           if (role === "doctor") window.location.href = "doctor-dashboard.html";
           if (role === "patient")
@@ -92,6 +97,7 @@
         }
       }
 
+      // Display a single inline error message inside the auth card.
       function showError(msg) {
         const errorMsg = document.getElementById("errorMsg");
         errorMsg.textContent = msg;
@@ -100,40 +106,3 @@
     </script>
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
