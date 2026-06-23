@@ -122,4 +122,44 @@ LIMIT 20`,
   }
 }
 
-module.exports = { createPrescription, getDoctorPrescriptions };
+// GET a single prescription by code — patient only, must be their own
+async function getPrescriptionByCode(req, res) {
+  const patientUserId = req.user.id;
+  const { code } = req.params;
+
+  try {
+    const [presRows] = await db.query(
+      `SELECT p.id, p.prescription_code, p.created_at,
+doc_user.full_name AS doctor_name
+FROM prescriptions p
+JOIN doctors d ON p.doctor_id = d.id
+JOIN users doc_user ON d.user_id = doc_user.id
+WHERE p.prescription_code = ? AND p.patient_id = ?`,
+      [code, patientUserId],
+    );
+
+    if (presRows.length === 0) {
+      return res.status(404).json({ message: "Prescription not found." });
+    }
+
+    const prescription = presRows[0];
+
+    const [items] = await db.query(
+      `SELECT dr.name, dr.id AS drug_id, pi.dosage, pi.duration, pi.instructions
+FROM prescription_items pi
+JOIN drugs dr ON pi.drug_id = dr.id
+WHERE pi.prescription_id = ?`,
+      [prescription.id],
+    );
+
+    res.json({ ...prescription, drugs: items });
+  } catch (err) {
+    res.status(500).json({ message: "Server error.", error: err.message });
+  }
+}
+
+module.exports = {
+  createPrescription,
+  getDoctorPrescriptions,
+  getPrescriptionByCode,
+};

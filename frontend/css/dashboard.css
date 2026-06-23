@@ -260,3 +260,70 @@
   color: #888;
   font-size: 12px;
 }
+
+/* ── Patient: retrieve button ── */
+.btn-retrieve {
+  padding: 10px 18px;
+  background: #1a7a4a;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-retrieve:hover {
+  background: #155f39;
+}
+
+/* ── Prescription detail header ── */
+.rx-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.rx-code {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0d2b4e;
+  margin-bottom: 4px;
+}
+
+.rx-meta {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 2px;
+}
+
+/* ── Drug table ── */
+.drug-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.drug-table th {
+  background: #f0f4f8;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12px;
+  color: #555;
+  font-weight: 600;
+}
+
+.drug-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.drug-table tr:last-child td {
+  border-bottom: none;
+}
