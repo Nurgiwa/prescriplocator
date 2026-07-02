@@ -1,0 +1,398 @@
+<!-- frontend/pharmacist-dashboard.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pharmacist Dashboard — PrescripLocator</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/dashboard.css" />
+  </head>
+  <body>
+    <div class="dash-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="logo">🏥 PrescripLocator</div>
+        <nav>
+          <a href="pharmacist-dashboard.html" class="active">Dashboard</a>
+          <a href="#">Sales</a>
+          <a href="#">Operating Hours</a>
+        </nav>
+        <div class="logout">
+          <a href="#" onclick="logout()">Logout</a>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <div class="main-header">
+          <h1>Pharmacist Dashboard</h1>
+          <div class="user-chip">
+            <div class="avatar" id="avatarInitial"></div>
+            <span id="userName"></span>
+          </div>
+        </div>
+
+        <!-- Step 1: Register pharmacy (only shows if no pharmacy yet) -->
+        <div
+          class="panel"
+          id="registerPanel"
+          style="display: none; margin-bottom: 24px"
+        >
+          <h3>Register Your Pharmacy</h3>
+          <p style="font-size: 13px; color: #888; margin-bottom: 16px">
+            You need to register your pharmacy before managing inventory.
+          </p>
+
+          <div class="field">
+            <label>Pharmacy Name</label>
+            <input
+              type="text"
+              id="phName"
+              placeholder="e.g. GreenLife Pharmacy"
+            />
+          </div>
+
+          <div class="field">
+            <label>Address</label>
+            <input
+              type="text"
+              id="phAddress"
+              placeholder="e.g. Kaduna Central, Kaduna"
+            />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="field">
+              <label>Latitude</label>
+              <input type="text" id="phLat" placeholder="e.g. 10.5105" />
+            </div>
+            <div class="field">
+              <label>Longitude</label>
+              <input type="text" id="phLng" placeholder="e.g. 7.4165" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="field">
+              <label>Opening Time</label>
+              <input type="time" id="phOpen" />
+            </div>
+            <div class="field">
+              <label>Closing Time</label>
+              <input type="time" id="phClose" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Phone</label>
+            <input type="text" id="phPhone" placeholder="e.g. 08033334444" />
+          </div>
+
+          <div class="error-msg" id="regError"></div>
+
+          <button class="btn-primary" onclick="registerPharmacy()">
+            Register Pharmacy
+          </button>
+        </div>
+
+        <!-- Step 2: Inventory (only shows once pharmacy exists) -->
+        <div id="inventorySection" style="display: none">
+          <div class="stats-row" style="grid-template-columns: repeat(3, 1fr)">
+            <div class="stat-card">
+              <div class="label">Total Drugs</div>
+              <div class="value" id="totalDrugs">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Low Stock</div>
+              <div class="value" id="lowStock">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Out of Stock</div>
+              <div class="value" id="outOfStock">0</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Inventory</h3>
+
+            <!-- Add drug form -->
+            <div style="position: relative; margin-bottom: 18px">
+              <div class="field">
+                <label>Search & Add Drug</label>
+                <input
+                  type="text"
+                  id="invDrugSearch"
+                  placeholder="Search drug by name"
+                  oninput="searchDrugsForInventory()"
+                />
+                <div class="search-results" id="invSearchResults"></div>
+              </div>
+
+              <div
+                id="addDrugForm"
+                style="
+                  display: none;
+                  display: grid;
+                  grid-template-columns: 1fr 1fr 1fr auto;
+                  gap: 8px;
+                  align-items: end;
+                "
+              >
+                <div>
+                  <label style="font-size: 12px; font-weight: 600">Drug</label>
+                  <div
+                    id="selectedDrugName"
+                    style="
+                      padding: 8px;
+                      background: #f0f4f8;
+                      border-radius: 6px;
+                      font-size: 13px;
+                    "
+                  ></div>
+                </div>
+                <div>
+                  <label style="font-size: 12px; font-weight: 600"
+                    >Price (₦)</label
+                  >
+                  <input type="number" id="invPrice" placeholder="0.00" />
+                </div>
+                <div>
+                  <label style="font-size: 12px; font-weight: 600"
+                    >Stock Qty</label
+                  >
+                  <input type="number" id="invStock" placeholder="0" />
+                </div>
+                <button class="btn-retrieve" onclick="confirmAddDrug()">
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <table class="drug-table">
+              <thead>
+                <tr>
+                  <th>Drug Name</th>
+                  <th>Category</th>
+                  <th>Price (₦)</th>
+                  <th>Stock</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="./js/auth-guard.js"></script>
+    <script>
+      document.getElementById("userName").textContent = user.full_name;
+      document.getElementById("avatarInitial").textContent = user.full_name
+        .charAt(0)
+        .toUpperCase();
+
+      let pendingDrug = null; // { drug_id, name } waiting for price/stock before adding
+
+      // ── Check if pharmacist already has a pharmacy ──
+      async function checkPharmacy() {
+        const res = await apiFetch("/pharmacy/mine");
+
+        if (res.status === 404) {
+          document.getElementById("registerPanel").style.display = "block";
+          return;
+        }
+
+        const pharmacy = await res.json();
+        document.getElementById("inventorySection").style.display = "block";
+        loadInventory();
+      }
+
+      // ── Register pharmacy ──
+      async function registerPharmacy() {
+        const body = {
+          name: document.getElementById("phName").value.trim(),
+          address: document.getElementById("phAddress").value.trim(),
+          latitude: document.getElementById("phLat").value.trim(),
+          longitude: document.getElementById("phLng").value.trim(),
+          opening_time: document.getElementById("phOpen").value + ":00",
+          closing_time: document.getElementById("phClose").value + ":00",
+          phone: document.getElementById("phPhone").value.trim(),
+        };
+
+        const errorDiv = document.getElementById("regError");
+        errorDiv.style.display = "none";
+
+        if (
+          !body.name ||
+          !body.address ||
+          !body.latitude ||
+          !body.longitude ||
+          !body.opening_time ||
+          !body.closing_time
+        ) {
+          errorDiv.textContent = "Please fill all required fields.";
+          errorDiv.style.display = "block";
+          return;
+        }
+
+        const res = await apiFetch("/pharmacy", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorDiv.textContent = data.message;
+          errorDiv.style.display = "block";
+          return;
+        }
+
+        document.getElementById("registerPanel").style.display = "none";
+        document.getElementById("inventorySection").style.display = "block";
+        loadInventory();
+      }
+
+      // ── Search drugs for inventory ──
+      let invSearchTimeout;
+      function searchDrugsForInventory() {
+        clearTimeout(invSearchTimeout);
+        const query = document.getElementById("invDrugSearch").value.trim();
+        const resultsBox = document.getElementById("invSearchResults");
+
+        if (query.length < 2) {
+          resultsBox.style.display = "none";
+          return;
+        }
+
+        invSearchTimeout = setTimeout(async () => {
+          const res = await apiFetch(
+            `/drugs/search?q=${encodeURIComponent(query)}`,
+          );
+          const drugs = await res.json();
+
+          resultsBox.innerHTML = "";
+          if (drugs.length === 0) {
+            resultsBox.style.display = "none";
+            return;
+          }
+
+          drugs.forEach((drug) => {
+            const div = document.createElement("div");
+            div.textContent = `${drug.name} (${drug.category || "No category"})`;
+            div.onclick = () => selectDrugForInventory(drug);
+            resultsBox.appendChild(div);
+          });
+          resultsBox.style.display = "block";
+        }, 300);
+      }
+
+      function selectDrugForInventory(drug) {
+        pendingDrug = drug;
+        document.getElementById("selectedDrugName").textContent = drug.name;
+        document.getElementById("invDrugSearch").value = "";
+        document.getElementById("invSearchResults").style.display = "none";
+        document.getElementById("addDrugForm").style.display = "grid";
+      }
+
+      async function confirmAddDrug() {
+        const price = document.getElementById("invPrice").value;
+        const stock = document.getElementById("invStock").value;
+
+        if (!pendingDrug || price === "" || stock === "") {
+          alert("Please enter price and stock quantity.");
+          return;
+        }
+
+        const res = await apiFetch("/pharmacy/inventory", {
+          method: "POST",
+          body: JSON.stringify({
+            drug_id: pendingDrug.id,
+            price,
+            stock_qty: stock,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.message);
+          return;
+        }
+
+        pendingDrug = null;
+        document.getElementById("addDrugForm").style.display = "none";
+        document.getElementById("invPrice").value = "";
+        document.getElementById("invStock").value = "";
+        loadInventory();
+      }
+
+      // ── Load and render inventory ──
+      async function loadInventory() {
+        const res = await apiFetch("/pharmacy/inventory");
+        const items = await res.json();
+
+        document.getElementById("totalDrugs").textContent = items.length;
+        document.getElementById("lowStock").textContent = items.filter(
+          (i) => i.stock_qty > 0 && i.stock_qty <= 10,
+        ).length;
+        document.getElementById("outOfStock").textContent = items.filter(
+          (i) => i.stock_qty === 0,
+        ).length;
+
+        const tbody = document.getElementById("inventoryTableBody");
+        tbody.innerHTML = "";
+
+        if (items.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="6" style="color:#999;">No drugs in inventory yet.</td></tr>';
+          return;
+        }
+
+        items.forEach((item) => {
+          let statusLabel, statusColor;
+          if (item.stock_qty === 0) {
+            statusLabel = "Out of Stock";
+            statusColor = "#c0392b";
+          } else if (item.stock_qty <= 10) {
+            statusLabel = "Low Stock";
+            statusColor = "#e67e22";
+          } else {
+            statusLabel = "In Stock";
+            statusColor = "#1a7a4a";
+          }
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+<td>${item.name}</td>
+<td>${item.category || "—"}</td>
+<td>₦${Number(item.price).toFixed(2)}</td>
+<td><input type="number" value="${item.stock_qty}" style="width:60px; padding:4px;" id="stock-${item.id}"></td>
+<td><span style="color:${statusColor}; font-weight:600; font-size:12px;">${statusLabel}</span></td>
+<td><button class="btn-retrieve" style="padding:6px 12px; font-size:12px;" onclick="updateStock(${item.id}, ${item.price})">Update</button></td>
+`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      async function updateStock(inventoryId, currentPrice) {
+        const newStock = document.getElementById(`stock-${inventoryId}`).value;
+
+        const res = await apiFetch(`/pharmacy/inventory/${inventoryId}`, {
+          method: "PUT",
+          body: JSON.stringify({ stock_qty: newStock, price: currentPrice }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data.message);
+          return;
+        }
+
+        loadInventory();
+      }
+
+      checkPharmacy();
+    </script>
+  </body>
+</html>
