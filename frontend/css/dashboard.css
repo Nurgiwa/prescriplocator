@@ -50,6 +50,20 @@
   padding-top: 16px;
 }
 
+.logout {
+  display: block;
+  padding: 12px 20px;
+  text-decoration: none;
+  font-size: 14px;
+  color: red;
+}
+
+/* Logout link is styled red to indicate a destructive action. */
+.logout a {
+  color: red;
+  text-decoration: none;
+}
+
 /* Main content */
 
 /* Content column scrolls independently when the dashboard grows taller. */
