@@ -13,6 +13,7 @@ const authRoutes = require("./routes/authRoutes");
 const drugRoutes = require("./routes/drugs");
 const prescriptionRoutes = require("./routes/prescriptions");
 const pharmacyRoutes = require("./routes/pharmacy");
+const searchRoutes = require("./routes/search");
 const app = express();
 
 // Enable CORS for cross-origin requests and parse incoming JSON request bodies
@@ -24,6 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/drugs", drugRoutes);
 app.use("/api/prescriptions", prescriptionRoutes);
 app.use("/api/pharmacy", pharmacyRoutes);
+app.use("/api/search", searchRoutes);
 
 // Serve static frontend files (HTML, CSS, JS) from the frontend directory
 app.use(express.static(path.join(__dirname, "../frontend")));
