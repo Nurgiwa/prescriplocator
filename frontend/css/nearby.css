@@ -1,0 +1,183 @@
+/* frontend/css/nearby.css */
+
+.nearby-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.nearby-topbar h2 {
+  font-size: 18px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: #1a7a4a;
+  color: #fff;
+  border-color: #1a7a4a;
+  font-weight: 600;
+}
+
+/* ── Map + list side by side ── */
+.nearby-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 65px);
+}
+
+.map-panel {
+  flex: 1.4;
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Recommended card overlaid at bottom of map ── */
+.recommended-card {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.rec-icon {
+  font-size: 24px;
+}
+
+.rec-info {
+  flex: 1;
+}
+
+.rec-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0d2b4e;
+  margin-bottom: 3px;
+}
+
+.rec-meta {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 2px;
+}
+.rec-stock {
+  font-size: 12px;
+  color: #1a7a4a;
+  font-weight: 600;
+}
+
+.btn-directions {
+  padding: 10px 16px;
+  background: #1a7a4a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Right panel: pharmacy cards ── */
+.pharmacy-list {
+  width: 320px;
+  overflow-y: auto;
+  background: #f8f9fa;
+  border-left: 1px solid #eee;
+}
+
+.pharmacy-card {
+  background: #fff;
+  margin: 10px;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s;
+}
+
+.pharmacy-card:hover {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pharmacy-card.top-pick {
+  border-left: 4px solid #1a7a4a;
+}
+
+.card-name {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.card-meta {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 2px;
+}
+.card-stock {
+  font-size: 12px;
+  color: #1a7a4a;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.btn-directions-sm {
+  padding: 6px 12px;
+  background: #1a7a4a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.card-time {
+  font-size: 11px;
+  color: #888;
+}
+
+.badge-open {
+  color: #1a7a4a;
+  font-weight: 600;
+}
+.badge-closed {
+  color: #c0392b;
+  font-weight: 600;
+}
