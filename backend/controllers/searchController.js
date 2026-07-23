@@ -1,138 +1,145 @@
 // backend/controllers/searchController.js
-const db        = require('../config/db');
-const { astar } = require('../algorithm/astar');
+const { buildGraph } = require("../algorithm/graphBuilder");
+const { astar } = require("../algorithm/astar");
+const { rankPharmacies } = require("../algorithm/pharmacyRanker");
+const db = require("../config/db");
 
-async function buildGraph() {
-  const [nodes] = await db.query('SELECT * FROM graph_nodes');
-  const [edges] = await db.query('SELECT * FROM graph_edges');
-
-  const graph = {};
-
-  nodes.forEach(node => {
-    graph[node.id] = {
-      id:        node.id,
-      label:     node.label,
-      latitude:  parseFloat(node.latitude),
-      longitude: parseFloat(node.longitude),
-      neighbors: []
-    };
-  });
-
-  edges.forEach(edge => {
-    if (graph[edge.from_node]) {
-      graph[edge.from_node].neighbors.push({
-        nodeId:      edge.to_node,
-        distance_km: parseFloat(edge.distance_km)
-      });
-    }
-  });
-
-  return graph;
-}
-
+// ── Find nearby pharmacies using A* algorithm ──
 async function findNearbyPharmacies(req, res) {
   const { patient_node_id, drug_ids } = req.body;
 
   if (!patient_node_id || !drug_ids || drug_ids.length === 0) {
-    return res.status(400).json({ message: 'patient_node_id and drug_ids are required.' });
+    return res
+      .status(400)
+      .json({ message: "patient_node_id and drug_ids are required." });
   }
 
   try {
     const graph = await buildGraph();
 
-    if (!graph[patient_node_id]) {
-      return res.status(400).json({ message: 'Invalid patient node.' });
+    if (!graph[String(patient_node_id)]) {
+      return res.status(400).json({ message: "Invalid patient node." });
     }
 
-    // Use node_id column directly — no coordinate matching
+    // Get all pharmacies that have a node assigned
     const [pharmacies] = await db.query(
-      'SELECT id, name, address, latitude, longitude, opening_time, closing_time, phone, node_id FROM pharmacies WHERE node_id IS NOT NULL'
+      `SELECT id, name, address, latitude, longitude,
+opening_time, closing_time, phone, node_id
+FROM pharmacies
+WHERE node_id IS NOT NULL`,
     );
 
     if (pharmacies.length === 0) {
-      return res.status(404).json({ message: 'No pharmacies found in the graph.' });
+      return res.status(404).json({ message: "No pharmacies found." });
     }
 
-    const now         = new Date();
+    const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
-    const results     = [];
+    const results = [];
 
     for (const pharmacy of pharmacies) {
-      // Run A* from patient node to this pharmacy's node
+      // ── Run A* from patient node to this pharmacy's node ──
       const result = astar(
         graph,
         String(patient_node_id),
-        String(pharmacy.node_id)
+        String(pharmacy.node_id),
       );
 
+      // Skip pharmacy if no path found
       if (!result) continue;
 
-      // Check opening hours
-      const [openH,  openM]  = pharmacy.opening_time.split(':').map(Number);
-      const [closeH, closeM] = pharmacy.closing_time.split(':').map(Number);
-      const isOpen = currentTime >= (openH * 60 + openM) &&
-                     currentTime <= (closeH * 60 + closeM);
+      // ── Check opening hours ──
+      const [oH, oM] = pharmacy.opening_time.split(":").map(Number);
+      const [cH, cM] = pharmacy.closing_time.split(":").map(Number);
+      const isOpen = currentTime >= oH * 60 + oM && currentTime <= cH * 60 + cM;
 
-      // Check drug availability
+      // ── Check drug availability ──
       const [inventory] = await db.query(
-        'SELECT drug_id FROM inventory WHERE pharmacy_id = ? AND drug_id IN (?) AND stock_qty > 0',
-        [pharmacy.id, drug_ids]
+        `SELECT drug_id FROM inventory
+WHERE pharmacy_id = ? AND drug_id IN (?) AND stock_qty > 0`,
+        [pharmacy.id, drug_ids],
       );
 
-      const availableDrugIds  = inventory.map(i => i.drug_id);
-      const drugsAvailable    = drug_ids.filter(id => availableDrugIds.includes(id)).length;
+      const availableIds = inventory.map((i) => i.drug_id);
+      const drugsAvailable = drug_ids.filter((id) =>
+        availableIds.includes(id),
+      ).length;
       const allDrugsAvailable = drugsAvailable === drug_ids.length;
 
+      // ── Build path coordinates for map route drawing ──
+      const pathCoords = result.path
+        .map((nodeId) => {
+          const node = graph[String(nodeId)];
+          if (!node) return null;
+          return { lat: node.latitude, lng: node.longitude };
+        })
+        .filter(Boolean);
+
       results.push({
-        pharmacy_id:         pharmacy.id,
-        name:                pharmacy.name,
-        address:             pharmacy.address,
-        latitude:            parseFloat(pharmacy.latitude),
-        longitude:           parseFloat(pharmacy.longitude),
-        phone:               pharmacy.phone,
-        opening_time:        pharmacy.opening_time,
-        closing_time:        pharmacy.closing_time,
-        is_open:             isOpen,
-        distance_km:         parseFloat(result.distance.toFixed(2)),
-        path:                result.path,
-        drugs_available:     drugsAvailable,
-        drugs_total:         drug_ids.length,
-        all_drugs_available: allDrugsAvailable
+        pharmacy_id: pharmacy.id,
+        name: pharmacy.name,
+        address: pharmacy.address,
+        latitude: parseFloat(pharmacy.latitude),
+        longitude: parseFloat(pharmacy.longitude),
+        phone: pharmacy.phone,
+        opening_time: pharmacy.opening_time,
+        closing_time: pharmacy.closing_time,
+        is_open: isOpen,
+        distance_km: parseFloat(result.distance.toFixed(2)),
+        path: result.path,
+        path_coords: pathCoords,
+        drugs_available: drugsAvailable,
+        drugs_total: drug_ids.length,
+        all_drugs_available: allDrugsAvailable,
       });
     }
 
-    // Rank: all drugs available first, then by distance
-    results.sort((a, b) => {
-      if (b.all_drugs_available !== a.all_drugs_available) {
-        return b.all_drugs_available - a.all_drugs_available;
-      }
-      return a.distance_km - b.distance_km;
-    });
-
-    res.json(results);
-
+    // ── Rank results using pharmacyRanker ──
+    const ranked = rankPharmacies(results);
+    res.json(ranked);
   } catch (err) {
-    res.status(500).json({ message: 'Server error.', error: err.message });
+    res.status(500).json({ message: "Server error.", error: err.message });
   }
 }
 
+// ── Find nearest graph node to patient's GPS coordinates ──
 async function findNearestNode(req, res) {
   const { latitude, longitude } = req.body;
 
   if (!latitude || !longitude) {
-    return res.status(400).json({ message: 'latitude and longitude are required.' });
+    return res
+      .status(400)
+      .json({ message: "latitude and longitude are required." });
   }
 
   try {
-    const [nodes] = await db.query('SELECT * FROM graph_nodes');
+    // Only search nodes within a small bounding box for speed
+    // instead of loading all 39K nodes
+    const [nodes] = await db.query(
+      `SELECT * FROM graph_nodes
+WHERE latitude BETWEEN ? AND ?
+AND longitude BETWEEN ? AND ?`,
+      [
+        parseFloat(latitude) - 0.05,
+        parseFloat(latitude) + 0.05,
+        parseFloat(longitude) - 0.05,
+        parseFloat(longitude) + 0.05,
+      ],
+    );
+
+    if (nodes.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No graph nodes found near this location." });
+    }
 
     let nearestNode = null;
     let minDistance = Infinity;
 
-    nodes.forEach(node => {
-      const dx = parseFloat(node.latitude)  - parseFloat(latitude);
+    nodes.forEach((node) => {
+      const dx = parseFloat(node.latitude) - parseFloat(latitude);
       const dy = parseFloat(node.longitude) - parseFloat(longitude);
-      const d  = Math.sqrt(dx * dx + dy * dy);
+      const d = Math.sqrt(dx * dx + dy * dy);
       if (d < minDistance) {
         minDistance = d;
         nearestNode = node;
@@ -140,10 +147,57 @@ async function findNearestNode(req, res) {
     });
 
     res.json(nearestNode);
-
   } catch (err) {
-    res.status(500).json({ message: 'Server error.', error: err.message });
+    res.status(500).json({ message: "Server error.", error: err.message });
   }
 }
 
-module.exports = { findNearbyPharmacies, findNearestNode };
+// ── Auto-assign nearest OSM node to each pharmacy ──
+// Run once after seeding the OSM graph
+async function assignPharmacyNodes() {
+  const [pharmacies] = await db.query("SELECT * FROM pharmacies");
+
+  for (const pharmacy of pharmacies) {
+    // Search within small bounding box for speed
+    const [nodes] = await db.query(
+      `SELECT * FROM graph_nodes
+WHERE latitude BETWEEN ? AND ?
+AND longitude BETWEEN ? AND ?`,
+      [
+        parseFloat(pharmacy.latitude) - 0.05,
+        parseFloat(pharmacy.latitude) + 0.05,
+        parseFloat(pharmacy.longitude) - 0.05,
+        parseFloat(pharmacy.longitude) + 0.05,
+      ],
+    );
+
+    if (nodes.length === 0) {
+      console.log(`No node found near ${pharmacy.name}`);
+      continue;
+    }
+
+    let nearestId = null;
+    let minDist = Infinity;
+
+    nodes.forEach((node) => {
+      const dx = parseFloat(node.latitude) - parseFloat(pharmacy.latitude);
+      const dy = parseFloat(node.longitude) - parseFloat(pharmacy.longitude);
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < minDist) {
+        minDist = d;
+        nearestId = node.id;
+      }
+    });
+
+    await db.query("UPDATE pharmacies SET node_id = ? WHERE id = ?", [
+      nearestId,
+      pharmacy.id,
+    ]);
+
+    console.log(`${pharmacy.name} → node ${nearestId}`);
+  }
+
+  console.log("Pharmacy nodes assigned.");
+}
+
+module.exports = { findNearbyPharmacies, findNearestNode, assignPharmacyNodes };

@@ -1,72 +1,51 @@
 // backend/algorithm/astar.js
+// A* shortest path algorithm using priority queue + euclidean heuristic
 
-// ── Euclidean distance heuristic using lat/lng coordinates ──
-// Used ONLY as a guide inside A* to estimate remaining distance
-// The actual distances come from graph_edges (real road distances)
-function heuristic(nodeA, nodeB) {
-  const dx = nodeA.latitude - nodeB.latitude;
-  const dy = nodeA.longitude - nodeB.longitude;
-  // 111 converts degrees to approximate km
-  return Math.sqrt(dx * dx + dy * dy) * 111;
-}
+const PriorityQueue = require("./priorityQueue");
+const { euclidean } = require("./heuristic");
 
-// ── A* Algorithm ──
-// graph = { nodeId: { id, label, latitude, longitude, neighbors: [{nodeId, distance_km}] } }
-// startId = node id where the patient is located
-// targetId = node id of the pharmacy we're trying to reach
-// Returns = { distance: km, path: [nodeId, ...] } or null if no path found
 function astar(graph, startId, targetId) {
-  const openSet = new Set([startId]);
+  const start = String(startId);
+  const target = String(targetId);
+
+  if (!graph[start] || !graph[target]) return null;
+
+  const pq = new PriorityQueue();
   const cameFrom = {};
-
-  // gScore = real road distance from start to each node
   const gScore = {};
-  // fScore = gScore + heuristic estimate to target
-  const fScore = {};
 
+  // Initialise all scores to Infinity
   Object.keys(graph).forEach((id) => {
     gScore[id] = Infinity;
-    fScore[id] = Infinity;
   });
 
-  gScore[startId] = 0;
-  fScore[startId] = heuristic(graph[startId], graph[targetId]);
+  gScore[start] = 0;
+  pq.enqueue(start, euclidean(graph[start], graph[target]));
 
-  while (openSet.size > 0) {
-    // Pick node in openSet with lowest fScore
-    let current = null;
-    let lowestF = Infinity;
-    openSet.forEach((id) => {
-      if (fScore[id] < lowestF) {
-        lowestF = fScore[id];
-        current = id;
-      }
-    });
+  while (!pq.isEmpty()) {
+    const current = pq.dequeue();
 
-    // Reached the target — reconstruct path
-    if (current == targetId) {
+    // Reached target — reconstruct path
+    if (current === target) {
       const path = [];
       let node = current;
       while (node !== undefined) {
         path.unshift(node);
         node = cameFrom[node];
       }
-      return { distance: gScore[targetId], path };
+      return { distance: gScore[target], path };
     }
 
-    openSet.delete(current);
-
-    // Check each neighbor
     const neighbors = graph[current].neighbors || [];
     for (const neighbor of neighbors) {
+      const neighborId = String(neighbor.nodeId);
       const tentativeG = gScore[current] + neighbor.distance_km;
 
-      if (tentativeG < gScore[neighbor.nodeId]) {
-        cameFrom[neighbor.nodeId] = current;
-        gScore[neighbor.nodeId] = tentativeG;
-        fScore[neighbor.nodeId] =
-          tentativeG + heuristic(graph[neighbor.nodeId], graph[targetId]);
-        openSet.add(neighbor.nodeId);
+      if (tentativeG < (gScore[neighborId] ?? Infinity)) {
+        cameFrom[neighborId] = current;
+        gScore[neighborId] = tentativeG;
+        const f = tentativeG + euclidean(graph[neighborId], graph[target]);
+        pq.enqueue(neighborId, f);
       }
     }
   }
@@ -74,4 +53,4 @@ function astar(graph, startId, targetId) {
   return null; // No path found
 }
 
-module.exports = { astar, heuristic };
+module.exports = { astar };

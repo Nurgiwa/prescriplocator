@@ -216,9 +216,10 @@ Directions
         });
       }
 
-      // ── Place markers on the map ──
+      // ── Place markers on the map & draw route ──
+      let routePolyline = null;
+
       function renderMapMarkers(list) {
-        // Clear old markers
         markers.forEach((m) => m.setMap(null));
         markers = [];
 
@@ -256,6 +257,32 @@ ${p.drugs_available}/${p.drugs_total} drugs available
           marker.addListener("click", () => infoWindow.open(map, marker));
           markers.push(marker);
         });
+
+        // Draw A* route to top-ranked pharmacy
+        if (list.length > 0 && list[0].path_coords) {
+          drawAstarRoute(list[0].path_coords);
+        }
+      }
+
+      // Draw the A* path on the map as a polyline
+      function drawAstarRoute(pathCoords) {
+        // Remove previous route
+        if (routePolyline) routePolyline.setMap(null);
+
+        routePolyline = new google.maps.Polyline({
+          path: pathCoords,
+          geodesic: true,
+          strokeColor: "#1a7a4a",
+          strokeOpacity: 0.9,
+          strokeWeight: 5,
+        });
+
+        routePolyline.setMap(map);
+
+        // Fit map to show full route
+        const bounds = new google.maps.LatLngBounds();
+        pathCoords.forEach((coord) => bounds.extend(coord));
+        map.fitBounds(bounds);
       }
 
       // ── Show recommended pharmacy at bottom of map ──
