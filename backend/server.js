@@ -30,6 +30,17 @@ app.use("/api/search", searchRoutes);
 // Serve static frontend files (HTML, CSS, JS) from the frontend directory
 app.use(express.static(path.join(__dirname, "../frontend")));
 
+// ── Setup route (remove after use) ──
+const { assignPharmacyNodes } = require("./controllers/searchController");
+app.get("/api/setup/assign-nodes", async (req, res) => {
+  try {
+    await assignPharmacyNodes();
+    res.json({ message: "Pharmacy nodes assigned." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check endpoint - verifies server and database connectivity
 app.get("/api/health", async (req, res) => {
   try {

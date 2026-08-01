@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="./css/style.css" />
     <link rel="stylesheet" href="./css/dashboard.css" />
     <link rel="stylesheet" href="./css/nearby.css" />
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
   </head>
   <body>
     <div class="dash-layout">
@@ -27,56 +32,70 @@
       <!-- Main -->
       <main
         class="main"
-        style="padding: 0; display: flex; flex-direction: column"
+        style="
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        "
       >
-        <!-- Top bar with tabs -->
+        <!-- Top bar -->
         <div class="nearby-topbar">
           <h2>Nearby Pharmacies</h2>
           <div class="tabs">
-            <button class="tab active" onclick="sortResults('nearest')">
+            <button class="tab active" onclick="sortResults('nearest', event)">
               Nearest
             </button>
-            <button class="tab" onclick="sortResults('open')">Open Now</button>
-            <button class="tab" onclick="sortResults('drugs')">
+            <button class="tab" onclick="sortResults('open', event)">
+              Open Now
+            </button>
+            <button class="tab" onclick="sortResults('drugs', event)">
               All Drugs Available
             </button>
           </div>
         </div>
 
         <div class="nearby-body">
-          <!-- Left: Map -->
+          <!-- Map panel -->
           <div class="map-panel">
             <div id="map"></div>
 
-            <!-- Recommended pharmacy card at bottom of map -->
+            <!-- Recommended card — sits below map, always visible -->
             <div
               class="recommended-card"
               id="recommendedCard"
               style="display: none"
             >
-              <div class="rec-icon">📍</div>
+              <div class="rec-icon"></div>
               <div class="rec-info">
                 <div class="rec-name" id="recName"></div>
                 <div class="rec-meta" id="recMeta"></div>
                 <div class="rec-stock" id="recStock"></div>
               </div>
               <button class="btn-directions" onclick="getDirections()">
-                Get Directions 🧭
+                Get Directions
               </button>
             </div>
           </div>
 
-          <!-- Right: Pharmacy list -->
-          <div class="pharmacy-list" id="pharmacyList">
-            <div style="padding: 20px; color: #999; font-size: 13px">
-              Detecting your location...
+          <!-- Right panel — expandable pharmacy list -->
+          <div class="pharmacy-list">
+            <div class="panel-toggle" id="panelToggle" onclick="togglePanel()">
+              <span id="panelTitle">Detecting location...</span>
+              <span class="toggle-icon">▲</span>
+            </div>
+            <div class="panel-content" id="panelContent">
+              <div style="padding: 16px; color: #999; font-size: 13px">
+                Please wait...
+              </div>
             </div>
           </div>
         </div>
       </main>
     </div>
 
-    <!-- Google Maps -->
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="./js/auth-guard.js"></script>
     <script>
       let map;
@@ -84,28 +103,32 @@
       let allResults = [];
       let topPharmacy = null;
       let patientLatLng = null;
+      let routeLayer = null;
+      let connectorLayer = null;
+
+      // Kaduna North center
+      const KADUNA_CENTER = [10.5264, 7.4365];
 
       // Drug IDs passed from patient dashboard
       const drugIds = JSON.parse(localStorage.getItem("searchDrugIds") || "[]");
 
-      // ── Initialize Google Map ──
+      // ── Initialize Leaflet Map ──
       function initMap() {
-        // Default center: Leventis Roundabout, Kaduna
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 10.52214, lng: 7.42981 },
-          zoom: 14,
-          mapTypeControl: false,
-          streetViewControl: false,
-        });
+        map = L.map("map").setView(KADUNA_CENTER, 14);
 
-        // Get patient location then run search
+        // OpenStreetMap tiles — free, no API key needed
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
+
         detectLocationAndSearch();
       }
 
-      // ── Get patient GPS + find nearest node + run A* ──
-      async function detectLocationAndSearch() {
+      // ── Detect patient GPS location ──
+      function detectLocationAndSearch() {
         if (!navigator.geolocation) {
-          runSearchFromNode(1); // fallback to Leventis if no geolocation
+          searchFromCoords(KADUNA_CENTER[0], KADUNA_CENTER[1]);
           return;
         }
 
@@ -113,77 +136,115 @@
           async (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            patientLatLng = { lat, lng };
+            patientLatLng = [lat, lng];
 
-            // Show patient marker on map
-            new google.maps.Marker({
-              position: { lat, lng },
-              map,
-              title: "You are here",
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 8,
-                fillColor: "#4285F4",
-                fillOpacity: 1,
-                strokeColor: "#fff",
-                strokeWeight: 2,
-              },
-            });
+            // Blue dot at exact GPS location
+            L.circleMarker([lat, lng], {
+              radius: 10,
+              fillColor: "#4285F4",
+              color: "#fff",
+              weight: 3,
+              fillOpacity: 1,
+              zIndexOffset: 1000,
+            })
+              .addTo(map)
+              .bindPopup(" You are here");
 
-            map.setCenter({ lat, lng });
+            // Accuracy circle
+            L.circle([lat, lng], {
+              radius: 100,
+              color: "#4285F4",
+              fillColor: "#4285F4",
+              fillOpacity: 0.1,
+              weight: 1,
+            }).addTo(map);
 
-            // Find nearest graph node to patient
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${API}/search/nearest-node`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ latitude: lat, longitude: lng }),
-            });
-
-            const node = await res.json();
-            runSearchFromNode(node.id);
+            map.setView([lat, lng], 15);
+            await searchFromCoords(lat, lng);
           },
-          () => runSearchFromNode(1), // fallback if user denies location
+          async () => {
+            // Fallback to Kaduna center if location denied
+            await searchFromCoords(KADUNA_CENTER[0], KADUNA_CENTER[1]);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
         );
       }
 
-      // ── Run A* search from a node ──
-      async function runSearchFromNode(nodeId) {
-        const ids = drugIds.length > 0 ? drugIds : [1]; // fallback drug if none passed
+      // ── Find nearest graph node to patient coords ──
+      async function searchFromCoords(lat, lng) {
+        try {
+          const res = await apiFetch("/search/nearest-node", {
+            method: "POST",
+            body: JSON.stringify({ latitude: lat, longitude: lng }),
+          });
 
-        const res = await apiFetch("/search/pharmacies", {
-          method: "POST",
-          body: JSON.stringify({ patient_node_id: nodeId, drug_ids: ids }),
-        });
+          const node = await res.json();
+          if (!node || !node.id) return;
 
-        const data = await res.json();
+          // Store nearest node coords for the connector line
+          window.patientNodeCoord = [
+            parseFloat(node.latitude),
+            parseFloat(node.longitude),
+          ];
 
-        if (!res.ok || data.length === 0) {
-          document.getElementById("pharmacyList").innerHTML =
-            '<div style="padding:20px; color:#999;">No pharmacies found.</div>';
-          return;
+          runSearchFromNode(node.id);
+        } catch (err) {
+          console.error("Error finding nearest node:", err);
         }
-
-        allResults = data;
-        topPharmacy = data[0];
-
-        renderResults(allResults);
-        renderMapMarkers(allResults);
-        showRecommended(topPharmacy);
       }
 
-      // ── Render pharmacy cards on the right panel ──
+      // ── Run A* search from node ──
+      async function runSearchFromNode(nodeId) {
+        const ids = drugIds.length > 0 ? drugIds : [1];
+
+        try {
+          const res = await apiFetch("/search/pharmacies", {
+            method: "POST",
+            body: JSON.stringify({ patient_node_id: nodeId, drug_ids: ids }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok || !Array.isArray(data) || data.length === 0) {
+            document.getElementById("panelTitle").textContent =
+              "No pharmacies found";
+            document.getElementById("panelContent").innerHTML =
+              '<div style="padding:16px; color:#999; font-size:13px;">No pharmacies found near you.</div>';
+            return;
+          }
+
+          allResults = data;
+          topPharmacy = data[0];
+
+          renderResults(allResults);
+          renderMapMarkers(allResults);
+          showRecommended(topPharmacy);
+        } catch (err) {
+          console.error("Search error:", err);
+        }
+      }
+
+      // ── Toggle pharmacy panel ──
+      function togglePanel() {
+        const toggle = document.getElementById("panelToggle");
+        const content = document.getElementById("panelContent");
+        toggle.classList.toggle("collapsed");
+        content.classList.toggle("collapsed");
+      }
+
+      // ── Render pharmacy cards ──
       function renderResults(list) {
-        const container = document.getElementById("pharmacyList");
+        const container = document.getElementById("panelContent");
         container.innerHTML = "";
+
+        // Update panel title
+        document.getElementById("panelTitle").textContent =
+          `${list.length} Pharmacies Found`;
 
         list.forEach((p, i) => {
           const openLabel = p.is_open
-            ? `<span class="badge-open">Open</span> · Closes ${p.closing_time}`
-            : `<span class="badge-closed">Closed</span> · Opens ${p.opening_time}`;
+            ? `<span class="badge-open">Open</span> · Closes ${p.closing_time.slice(0, 5)}`
+            : `<span class="badge-closed">Closed</span> · Opens ${p.opening_time.slice(0, 5)}`;
 
           const stockLabel = p.all_drugs_available
             ? `All ${p.drugs_total} medicines available`
@@ -192,112 +253,127 @@
           const card = document.createElement("div");
           card.className = "pharmacy-card" + (i === 0 ? " top-pick" : "");
           card.innerHTML = `
-<div class="card-left">
-<div class="card-name">${p.name}</div>
-<div class="card-meta">${p.distance_km} km away</div>
-<div class="card-meta">${openLabel}</div>
-<div class="card-stock">${stockLabel}</div>
-</div>
-<div class="card-right">
-<button class="btn-directions-sm" onclick="openDirections(${p.latitude}, ${p.longitude})">
-Directions
-</button>
-<div class="card-time">~${Math.round(p.distance_km * 3)} min</div>
-</div>
-`;
+          <div class="card-left">
+            <div class="card-name">${p.name}</div>
+            <div class="card-meta">${p.distance_km} km away</div>
+            <div class="card-meta">${openLabel}</div>
+            <div class="card-stock">${stockLabel}</div>
+          </div>
+          <div class="card-right">
+            <button class="btn-directions-sm"
+              onclick="event.stopPropagation(); openDirections(${p.latitude}, ${p.longitude})">
+              Directions
+            </button>
+            <div class="card-time">~${Math.round(p.distance_km * 3)} min</div>
+          </div>
+        `;
 
-          // Click card → pan map to that pharmacy
+          // Click card → pan map + redraw route
           card.onclick = () => {
-            map.panTo({ lat: p.latitude, lng: p.longitude });
+            map.panTo([p.latitude, p.longitude]);
             map.setZoom(16);
+            if (p.path_coords) drawRoute(p.path_coords);
           };
 
           container.appendChild(card);
         });
       }
 
-      // ── Place markers on the map & draw route ──
-      let routePolyline = null;
-
+      // ── Place numbered markers on map ──
       function renderMapMarkers(list) {
-        markers.forEach((m) => m.setMap(null));
+        markers.forEach((m) => map.removeLayer(m));
         markers = [];
 
         list.forEach((p, i) => {
-          const marker = new google.maps.Marker({
-            position: { lat: p.latitude, lng: p.longitude },
+          const icon = L.divIcon({
+            className: "",
+            html: `
+            <div style="
+              width:30px; height:30px;
+              background:${i === 0 ? "#1a7a4a" : "#0d2b4e"};
+              border:2px solid #fff;
+              border-radius:50%;
+              display:flex; align-items:center; justify-content:center;
+              color:#fff; font-weight:bold; font-size:12px;
+              box-shadow:0 2px 6px rgba(0,0,0,0.3);">
+              ${i + 1}
+            </div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+          });
+
+          const marker = L.marker([p.latitude, p.longitude], { icon }).addTo(
             map,
-            title: p.name,
-            label: {
-              text: String(i + 1),
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: "12px",
-            },
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 18,
-              fillColor: i === 0 ? "#1a7a4a" : "#0d2b4e",
-              fillOpacity: 1,
-              strokeColor: "#fff",
-              strokeWeight: 2,
-            },
-          });
+          ).bindPopup(`
+            <div style="font-size:13px; min-width:160px; line-height:1.6;">
+              <strong>${p.name}</strong><br>
+               ${p.distance_km} km away<br>
+              ${p.is_open ? "🟢 Open" : "🔴 Closed"} · ${p.is_open ? "Closes " + p.closing_time.slice(0, 5) : "Opens " + p.opening_time.slice(0, 5)}<br>
+               ${p.drugs_available}/${p.drugs_total} drugs available<br>
+              <a href="https://www.openstreetmap.org/directions?from=${patientLatLng ? patientLatLng[0] + "," + patientLatLng[1] : KADUNA_CENTER.join(",")}&to=${p.latitude},${p.longitude}"
+                target="_blank"
+                style="color:#1a7a4a; font-weight:600; text-decoration:none;">
+                Get Directions →
+              </a>
+            </div>
+          `);
 
-          const infoWindow = new google.maps.InfoWindow({
-            content: `
-<div style="font-size:13px; min-width:160px;">
-<strong>${p.name}</strong><br>
-${p.distance_km} km · ${p.is_open ? "🟢 Open" : "🔴 Closed"}<br>
-${p.drugs_available}/${p.drugs_total} drugs available
-</div>
-`,
-          });
-
-          marker.addListener("click", () => infoWindow.open(map, marker));
           markers.push(marker);
         });
 
-        // Draw A* route to top-ranked pharmacy
+        // Draw A* route to top pharmacy
         if (list.length > 0 && list[0].path_coords) {
-          drawAstarRoute(list[0].path_coords);
+          drawRoute(list[0].path_coords);
         }
       }
 
-      // Draw the A* path on the map as a polyline
-      function drawAstarRoute(pathCoords) {
-        // Remove previous route
-        if (routePolyline) routePolyline.setMap(null);
+      // ── Draw A* route + blue connector from exact location ──
+      function drawRoute(pathCoords) {
+        if (routeLayer) map.removeLayer(routeLayer);
+        if (connectorLayer) map.removeLayer(connectorLayer);
 
-        routePolyline = new google.maps.Polyline({
-          path: pathCoords,
-          geodesic: true,
-          strokeColor: "#1a7a4a",
-          strokeOpacity: 0.9,
-          strokeWeight: 5,
-        });
+        // Convert to Leaflet format
+        const latlngs = pathCoords.map((c) => [c.lat, c.lng]);
 
-        routePolyline.setMap(map);
+        // Green solid A* path
+        routeLayer = L.polyline(latlngs, {
+          color: "#1a7a4a",
+          weight: 5,
+          opacity: 0.9,
+        }).addTo(map);
 
-        // Fit map to show full route
-        const bounds = new google.maps.LatLngBounds();
-        pathCoords.forEach((coord) => bounds.extend(coord));
-        map.fitBounds(bounds);
+        // Blue dashed connector: exact GPS → nearest graph node
+        if (patientLatLng && window.patientNodeCoord) {
+          connectorLayer = L.polyline(
+            [patientLatLng, window.patientNodeCoord],
+            {
+              color: "#4285F4",
+              weight: 3,
+              opacity: 0.8,
+              dashArray: "8, 8",
+            },
+          ).addTo(map);
+        }
+
+        // Fit map bounds to show full route
+        const bounds = routeLayer.getBounds();
+        if (patientLatLng) bounds.extend(patientLatLng);
+        map.fitBounds(bounds, { padding: [40, 40] });
       }
 
-      // ── Show recommended pharmacy at bottom of map ──
+      // ── Show recommended pharmacy bar ──
       function showRecommended(p) {
         document.getElementById("recName").textContent = p.name;
         document.getElementById("recMeta").textContent =
-          `${p.distance_km} km away · ~${Math.round(p.distance_km * 3)} min Drive`;
+          `${p.distance_km} km · ~${Math.round(p.distance_km * 3)} min drive`;
         document.getElementById("recStock").textContent = p.all_drugs_available
-          ? "All medicines available · 🟢 Open now"
-          : `${p.drugs_available}/${p.drugs_total} medicines available`;
+          ? `All ${p.drugs_total} medicines available · ${p.is_open ? "🟢 Open" : "🔴 Closed"}`
+          : `${p.drugs_available}/${p.drugs_total} medicines available · ${p.is_open ? "🟢 Open" : "🔴 Closed"}`;
         document.getElementById("recommendedCard").style.display = "flex";
       }
 
       // ── Sort/filter tabs ──
-      function sortResults(mode) {
+      function sortResults(mode, event) {
         document
           .querySelectorAll(".tab")
           .forEach((t) => t.classList.remove("active"));
@@ -318,13 +394,13 @@ ${p.drugs_available}/${p.drugs_total} drugs available
         renderResults(sorted);
       }
 
-      // ── Directions ──
+      // ── Open directions in OpenStreetMap ──
       function openDirections(lat, lng) {
-        const origin = patientLatLng
-          ? `${patientLatLng.lat},${patientLatLng.lng}`
-          : "10.52214,7.42981";
+        const from = patientLatLng
+          ? `${patientLatLng[0]},${patientLatLng[1]}`
+          : KADUNA_CENTER.join(",");
         window.open(
-          `https://www.google.com/maps/dir/${origin}/${lat},${lng}`,
+          `https://www.openstreetmap.org/directions?from=${from}&to=${lat},${lng}`,
           "_blank",
         );
       }
@@ -333,13 +409,9 @@ ${p.drugs_available}/${p.drugs_total} drugs available
         if (topPharmacy)
           openDirections(topPharmacy.latitude, topPharmacy.longitude);
       }
-    </script>
 
-    <!-- Load Google Maps last, it calls initMap() when ready -->
-    <script
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCaYBlURPAXSiWIxZkdyVIwZ6NhRKvkoWc&callback=initMap"
-      async
-      defer
-    ></script>
+      // ── Start ──
+      initMap();
+    </script>
   </body>
 </html>

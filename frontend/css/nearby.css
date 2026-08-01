@@ -1,16 +1,22 @@
 /* frontend/css/nearby.css */
 
+* {
+  box-sizing: border-box;
+}
+
 .nearby-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 12px 24px;
   background: #fff;
   border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+  height: 56px;
 }
 
 .nearby-topbar h2 {
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .tabs {
@@ -19,12 +25,13 @@
 }
 
 .tab {
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: 1px solid #ddd;
   border-radius: 20px;
   background: #fff;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .tab.active {
@@ -34,90 +41,139 @@
   font-weight: 600;
 }
 
-/* ── Map + list side by side ── */
+/* ── Body fills exactly the remaining screen height ── */
 .nearby-body {
   display: flex;
-  flex: 1;
+  height: calc(100vh - 56px); /* topbar height */
   overflow: hidden;
-  height: calc(100vh - 65px);
 }
 
+/* ── Map panel ── */
 .map-panel {
-  flex: 1.4;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
+  min-width: 0;
 }
 
 #map {
+  flex: 1;
   width: 100%;
-  height: 100%;
+  z-index: 1;
+  min-height: 0;
 }
 
-/* ── Recommended card overlaid at bottom of map ── */
+/* ── Recommended card — fixed bar below map ── */
 .recommended-card {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
   background: #fff;
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-top: 2px solid #1a7a4a;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  gap: 10px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+  flex-shrink: 0;
 }
 
 .rec-icon {
-  font-size: 24px;
+  font-size: 20px;
 }
-
 .rec-info {
   flex: 1;
+  min-width: 0;
 }
 
 .rec-name {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   color: #0d2b4e;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .rec-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
-  margin-bottom: 2px;
 }
 .rec-stock {
-  font-size: 12px;
+  font-size: 11px;
   color: #1a7a4a;
   font-weight: 600;
 }
 
 .btn-directions {
-  padding: 10px 16px;
+  padding: 8px 12px;
   background: #1a7a4a;
   color: #fff;
   border: none;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-/* ── Right panel: pharmacy cards ── */
+.btn-directions:hover {
+  background: #155f39;
+}
+
+/* ── Right panel — scrollable pharmacy list ── */
 .pharmacy-list {
-  width: 320px;
+  width: 300px;
+  min-width: 300px;
   overflow-y: auto;
   background: #f8f9fa;
   border-left: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
 }
 
+/* ── Expandable panel toggle ── */
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #0d2b4e;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.panel-toggle .toggle-icon {
+  font-size: 16px;
+  transition: transform 0.3s;
+}
+
+.panel-toggle.collapsed .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  transition: max-height 0.3s ease;
+}
+
+.panel-content.collapsed {
+  max-height: 0;
+  overflow: hidden;
+}
+
+/* ── Pharmacy cards ── */
 .pharmacy-card {
   background: #fff;
-  margin: 10px;
+  margin: 8px;
   border-radius: 10px;
-  padding: 14px;
+  padding: 12px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -127,52 +183,61 @@
 }
 
 .pharmacy-card:hover {
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
 .pharmacy-card.top-pick {
   border-left: 4px solid #1a7a4a;
 }
 
+.card-left {
+  flex: 1;
+  min-width: 0;
+}
 .card-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 .card-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
   margin-bottom: 2px;
 }
 .card-stock {
-  font-size: 12px;
+  font-size: 11px;
   color: #1a7a4a;
   font-weight: 600;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .card-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 5px;
+  margin-left: 8px;
+  flex-shrink: 0;
 }
 
 .btn-directions-sm {
-  padding: 6px 12px;
+  padding: 5px 10px;
   background: #1a7a4a;
   color: #fff;
   border: none;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
 }
 
-.card-time {
-  font-size: 11px;
-  color: #888;
+.btn-directions-sm:hover {
+  background: #155f39;
 }
 
+.card-time {
+  font-size: 10px;
+  color: #888;
+}
 .badge-open {
   color: #1a7a4a;
   font-weight: 600;
