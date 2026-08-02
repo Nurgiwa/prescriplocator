@@ -1,0 +1,243 @@
+<!-- frontend/index.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>PrescripLocator — Digital Prescription. Nearest Pharmacy.</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/landing.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  </head>
+  <body>
+    <!-- ── Navbar ── -->
+    <nav class="navbar">
+      <div class="nav-logo">PrescripLocator</div>
+      <ul class="nav-links">
+        <li><a href="#home">Home</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How it Works</a></li>
+      </ul>
+      <div class="nav-auth">
+        <a href="login.html" class="btn-login">Login</a>
+        <a href="register.html" class="btn-register">Register</a>
+      </div>
+    </nav>
+
+    <!-- ── Hero ── -->
+    <section class="hero" id="home">
+      <div class="hero-text">
+        <p class="hero-tagline">Smart Healthcare, Closer to You</p>
+        <h1>
+          Prescription & Pharmacy Locator System With Optimized Distance
+          Algorithm
+        </h1>
+        <p class="hero-sub">
+          Our system helps doctors create digital prescriptions and helps you
+          find the nearest pharmacies with your medication available using an
+          optimized A* distance algorithm.
+        </p>
+        <div class="hero-btns">
+          <a href="register.html" class="btn-primary">Get Started</a>
+          <a href="login.html" class="btn-outline">Find Pharmacy</a>
+        </div>
+      </div>
+      <div class="hero-image">
+  <img src="./images/kasu-logo.png" alt="Kaduna State University"
+    style="width:320px; height:320px; object-fit:contain;
+           filter: drop-shadow(0 8px 24px rgba(0,0,0,0.15));
+           animation: floatLogo 3s ease-in-out infinite;">
+</div>
+      </div>
+    </section>
+
+    <!-- ── Why Choose Us ── -->
+    <section class="why-section" id="about">
+      <h2>Why Choose PrescripLocator?</h2>
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-prescription" style="color: rgb(229, 27, 27);"></i></div>
+          <h4>Digital Prescription</h4>
+          <p>Secure, fast and paperless prescriptions for better healthcare.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-location-dot" style="color: rgb(229, 27, 27);"></i></i></i></div>
+          <h4>Pharmacy Locator</h4>
+          <p>Find nearby pharmacies with your medicines in stock.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-route" style="color: rgb(229, 27, 27);"></i></div>
+          <h4>Distance Optimization</h4>
+          <p>Optimized A* algorithm recommends the nearest and best options.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon"><i class="fa-solid fa-check-double" style="color: rgb(229, 27, 27);"></i></i></div>
+          <h4>Drug Availability</h4>
+          <p>Drug availability and pharmacy status (Open/Closed).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Features ── -->
+    <section class="features-section" id="features">
+      <h2>Features</h2>
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fa-solid fa-user-doctor"></i></div>
+          <div>
+            <h4>For Doctors</h4>
+            <p>
+              Create digital prescriptions with a unique code. Search drugs from
+              a verified catalogue. Track all your patient prescriptions.
+            </p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fa-solid fa-hospital-user"></i></div>
+          <div>
+            <h4>For Patients</h4>
+            <p>
+              Retrieve prescriptions with a unique ID. Find the nearest pharmacy
+              with your drugs in stock using our A* algorithm.
+            </p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fa-solid fa-capsules"></i></div>
+          <div>
+            <h4>For Pharmacists</h4>
+            <p>
+              Register your pharmacy with automatic location detection. Manage
+              your drug inventory and stock levels in real time.
+            </p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon"><i class="fa-solid fa-user-tie"></i></div>
+          <div>
+            <h4>For Admins</h4>
+            <p>
+              Monitor all users, pharmacies, and prescriptions from a central
+              dashboard with live statistics and charts.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── How it Works ── -->
+    <section class="how-section" id="how">
+      <h2>How it Works</h2>
+      <div class="steps-row">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <h4>Doctor creates digital prescription</h4>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <h4>Prescription ID generated</h4>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <h4>Patient retrieves prescription</h4>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">
+            <h4>System finds required drugs</h4>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-text">
+            <h4>A* algorithm ranks pharmacies</h4>
+          </div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-text">
+            <h4>Patient gets directions</h4>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Choose Role ── -->
+    <section class="role-section">
+      <h2>Get Started</h2>
+      <p style="color: #666; margin-bottom: 32px">
+        Select how you want to continue
+      </p>
+      <div class="role-grid">
+        <a href="register.html" class="role-card">
+          <div class="role-icon"><i class="fa-solid fa-user-doctor"></i></div>
+          <div class="role-title">I am a Doctor</div>
+          <div class="role-sub">Create digital prescriptions</div>
+          <div class="role-arrow">→</div>
+        </a>
+        <a href="register.html" class="role-card">
+          <div class="role-icon"><i class="fa-solid fa-hospital-user"></i></div>
+          <div class="role-title">I am a Patient</div>
+          <div class="role-sub">Find my nearest pharmacy</div>
+          <div class="role-arrow">→</div>
+        </a>
+        <a href="register.html" class="role-card">
+          <div class="role-icon"><i class="fa-solid fa-capsules"></i></div>
+          <div class="role-title">I am a Pharmacist</div>
+          <div class="role-sub">Manage my pharmacy</div>
+          <div class="role-arrow">→</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ── Footer ── -->
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="footer-logo">PrescripLocator</div>
+          <p>
+            Connecting patients, doctors and pharmacies for a healthier
+            community.
+          </p>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how">How it Works</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="#">FAQ</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms & Conditions</a></li>
+            <li><a href="#">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact Us</h4>
+          <p><i class="fa-solid fa-phone" style="color: rgb(229, 27, 27);"></i> +234 800 000 1111</p>
+          <p><i class="fa-solid fa-envelope" style="color: rgb(243, 237, 237);"></i> info@prescriplocator.com</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        © 2026 PrescripLocator. All rights reserved.
+      </div>
+    </footer>
+  </body>
+</html>

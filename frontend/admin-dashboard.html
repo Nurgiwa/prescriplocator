@@ -1,0 +1,380 @@
+<!-- frontend/admin-dashboard.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Admin Dashboard — PrescripLocator</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/dashboard.css" />
+    <link rel="stylesheet" href="./css/admin.css" />
+  </head>
+  <body>
+    <div class="dash-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="logo">PrescripLocator</div>
+        <nav>
+          <a href="admin-dashboard.html" class="active">Dashboard</a>
+          <a href="#" onclick="showSection('users')">Users</a>
+          <a href="#" onclick="showSection('pharmacies')">Pharmacies</a>
+          <a href="#" onclick="showSection('prescriptions')">Prescriptions</a>
+        </nav>
+        <div class="logout">
+          <a href="#" onclick="logout()">Logout</a>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <div class="main-header">
+          <h1 id="pageTitle">Admin Dashboard</h1>
+          <div class="user-chip">
+            <div class="avatar" id="avatarInitial"></div>
+            <span id="userName"></span>
+          </div>
+        </div>
+
+        <!-- ── Overview Section ── -->
+        <div id="section-overview">
+          <!-- Stat cards -->
+          <div class="stats-row" style="grid-template-columns: repeat(4, 1fr)">
+            <div class="stat-card">
+              <div class="label">Total Users</div>
+              <div class="value" id="statUsers">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Doctors</div>
+              <div class="value" id="statDoctors">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Pharmacies</div>
+              <div class="value" id="statPharmacies">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Prescriptions</div>
+              <div class="value" id="statPrescriptions">—</div>
+            </div>
+          </div>
+
+          <div
+            class="stats-row"
+            style="grid-template-columns: repeat(3, 1fr); margin-top: 0"
+          >
+            <div class="stat-card">
+              <div class="label">Patients</div>
+              <div class="value" id="statPatients">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Pharmacists</div>
+              <div class="value" id="statPharmacists">—</div>
+            </div>
+            <div class="stat-card">
+              <div class="label">Drugs in Catalogue</div>
+              <div class="value" id="statDrugs">—</div>
+            </div>
+          </div>
+
+          <div class="panels-row">
+            <!-- Prescriptions chart -->
+            <div class="panel">
+              <h3>Prescriptions — Last 7 Days</h3>
+              <div class="chart-container">
+                <canvas id="prescriptionsChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Top pharmacies -->
+            <div class="panel">
+              <h3>Top Pharmacies by Stock</h3>
+              <table class="drug-table" id="topPharmaciesTable">
+                <thead>
+                  <tr>
+                    <th>Pharmacy</th>
+                    <th>Drugs</th>
+                    <th>Total Stock</th>
+                  </tr>
+                </thead>
+                <tbody id="topPharmaciesBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent prescriptions -->
+          <div class="panel" style="margin-top: 20px">
+            <h3>Recent Prescriptions</h3>
+            <table class="drug-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="recentPrescriptionsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Users Section ── -->
+        <div id="section-users" style="display: none">
+          <div class="panel">
+            <h3>All Users</h3>
+            <table class="drug-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Role</th>
+                  <th>Joined</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Pharmacies Section ── -->
+        <div id="section-pharmacies" style="display: none">
+          <div class="panel">
+            <h3>All Pharmacies</h3>
+            <table class="drug-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Address</th>
+                  <th>Phone</th>
+                  <th>Hours</th>
+                  <th>Drugs</th>
+                </tr>
+              </thead>
+              <tbody id="pharmaciesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Prescriptions Section ── -->
+        <div id="section-prescriptions" style="display: none">
+          <div class="panel">
+            <h3>All Prescriptions</h3>
+            <table class="drug-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="prescriptionsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Chart.js for prescriptions chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./js/auth-guard.js"></script>
+    <script>
+      document.getElementById("userName").textContent = user.full_name;
+      document.getElementById("avatarInitial").textContent = user.full_name
+        .charAt(0)
+        .toUpperCase();
+
+      let prescriptionsChart = null;
+
+      // ── Load dashboard stats ──
+      async function loadStats() {
+        const res = await apiFetch("/admin/stats");
+        const data = await res.json();
+
+        if (!res.ok) return;
+
+        const { stats, dailyStats, topPharmacies, recentPrescriptions } = data;
+
+        // Stat cards
+        document.getElementById("statUsers").textContent = stats.total_users;
+        document.getElementById("statDoctors").textContent =
+          stats.total_doctors;
+        document.getElementById("statPharmacies").textContent =
+          stats.total_pharmacies;
+        document.getElementById("statPrescriptions").textContent =
+          stats.total_prescriptions;
+        document.getElementById("statPatients").textContent =
+          stats.total_patients;
+        document.getElementById("statPharmacists").textContent =
+          stats.total_pharmacists;
+        document.getElementById("statDrugs").textContent = stats.total_drugs;
+
+        // Prescriptions chart
+        renderChart(dailyStats);
+
+        // Top pharmacies table
+        const topBody = document.getElementById("topPharmaciesBody");
+        topBody.innerHTML = "";
+        topPharmacies.forEach((p) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+          <td>${p.name}</td>
+          <td>${p.drug_count}</td>
+          <td>${p.total_stock || 0}</td>
+        `;
+          topBody.appendChild(tr);
+        });
+
+        // Recent prescriptions
+        const recBody = document.getElementById("recentPrescriptionsBody");
+        recBody.innerHTML = "";
+        recentPrescriptions.forEach((p) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+          <td><strong>${p.prescription_code}</strong></td>
+          <td>${p.patient_name}</td>
+          <td>${p.doctor_name}</td>
+          <td>${new Date(p.created_at).toLocaleDateString()}</td>
+        `;
+          recBody.appendChild(tr);
+        });
+      }
+
+      // ── Prescriptions chart ──
+      function renderChart(dailyStats) {
+        const labels = dailyStats.map((d) =>
+          new Date(d.date).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+          }),
+        );
+        const counts = dailyStats.map((d) => d.count);
+
+        if (prescriptionsChart) prescriptionsChart.destroy();
+
+        prescriptionsChart = new Chart(
+          document.getElementById("prescriptionsChart"),
+          {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Prescriptions",
+                  data: counts,
+                  backgroundColor: "#1a7a4a",
+                  borderRadius: 6,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+              },
+            },
+          },
+        );
+      }
+
+      // ── Load users ──
+      async function loadUsers() {
+        const res = await apiFetch("/admin/users");
+        const users = await res.json();
+
+        const tbody = document.getElementById("usersTableBody");
+        tbody.innerHTML = "";
+
+        users.forEach((u) => {
+          const roleColors = {
+            admin: "#c0392b",
+            doctor: "#2980b9",
+            pharmacist: "#8e44ad",
+            patient: "#1a7a4a",
+          };
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+          <td>${u.full_name}</td>
+          <td>${u.email}</td>
+          <td>${u.phone || "—"}</td>
+          <td>
+            <span style="color:${roleColors[u.role]}; font-weight:600; font-size:12px;">
+              ${u.role.toUpperCase()}
+            </span>
+          </td>
+          <td>${new Date(u.created_at).toLocaleDateString()}</td>
+        `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // ── Load pharmacies ──
+      async function loadPharmacies() {
+        const res = await apiFetch("/admin/pharmacies");
+        const list = await res.json();
+
+        const tbody = document.getElementById("pharmaciesTableBody");
+        tbody.innerHTML = "";
+
+        list.forEach((p) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+          <td><strong>${p.name}</strong></td>
+          <td style="font-size:12px;">${p.address}</td>
+          <td>${p.phone || "—"}</td>
+          <td style="font-size:12px;">
+            ${p.opening_time.slice(0, 5)} – ${p.closing_time.slice(0, 5)}
+          </td>
+          <td>${p.drug_count}</td>
+        `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // ── Load prescriptions ──
+      async function loadPrescriptions() {
+        const res = await apiFetch("/admin/stats");
+        const data = await res.json();
+
+        const tbody = document.getElementById("prescriptionsTableBody");
+        tbody.innerHTML = "";
+
+        data.recentPrescriptions.forEach((p) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+          <td><strong>${p.prescription_code}</strong></td>
+          <td>${p.patient_name}</td>
+          <td>${p.doctor_name}</td>
+          <td>${new Date(p.created_at).toLocaleDateString()}</td>
+        `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // ── Section navigation ──
+      function showSection(section) {
+        const sections = ["overview", "users", "pharmacies", "prescriptions"];
+        sections.forEach((s) => {
+          document.getElementById(`section-${s}`).style.display =
+            s === section ? "block" : "none";
+        });
+
+        const titles = {
+          overview: "Admin Dashboard",
+          users: "All Users",
+          pharmacies: "All Pharmacies",
+          prescriptions: "All Prescriptions",
+        };
+        document.getElementById("pageTitle").textContent = titles[section];
+
+        // Load data for the section
+        if (section === "users") loadUsers();
+        if (section === "pharmacies") loadPharmacies();
+        if (section === "prescriptions") loadPrescriptions();
+      }
+
+      // ── Start ──
+      loadStats();
+    </script>
+  </body>
+</html>
